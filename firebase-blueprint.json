@@ -1,0 +1,28 @@
+{
+  "entities": {
+    "Goal": {
+      "title": "Goal",
+      "description": "Represents a user's goal with a locked reward.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "mode": { "type": "string", "enum": ["timer", "qr"] },
+        "deadline": { "type": "number" },
+        "qrCodeData": { "type": "string" },
+        "qrUnlocked": { "type": "boolean" },
+        "rewardType": { "type": "string", "enum": ["text", "image"] },
+        "rewardContent": { "type": "string" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["userId", "name", "deadline", "rewardType", "rewardContent", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/goals/{goalId}": {
+      "schema": { "$ref": "#/entities/Goal" },
+      "description": "A collection of goals spanning all users. Access is restricted by checking the userId field."
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "Reward Locker",
+  "description": "Lock rewards away until a goal deadline is reached.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": []
+}

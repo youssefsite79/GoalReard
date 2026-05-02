@@ -1,0 +1,48 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Helpers ---
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    function isSignedIn() { return request.auth != null; }
+
+    function isValidGoal(data) {
+      return data.keys().hasAll(['userId', 'name', 'deadline', 'rewardType', 'rewardContent', 'createdAt']) &&
+             data.userId == request.auth.uid &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 300 &&
+             data.deadline is number &&
+             data.rewardType in ['text', 'image'] &&
+             data.rewardContent is string && data.rewardContent.size() <= 1048487 && // 1MB constraint max
+             data.createdAt is number &&
+             (data.get('mode', 'timer') in ['timer', 'qr']) &&
+             (data.get('qrCodeData', '') is string) &&
+             (data.get('qrUnlocked', false) is bool);
+    }
+
+    match /goals/{goalId} {
+      allow get: if isSignedIn() && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      
+      allow create: if isSignedIn() && 
+                    isValidId(goalId) && 
+                    isValidGoal(incoming()) &&
+                    incoming().createdAt == request.time.toMillis();
+      
+      allow update: if isSignedIn() && 
+                    isValidGoal(incoming()) && 
+                    incoming().userId == existing().userId &&
+                    incoming().createdAt == existing().createdAt &&
+                    (
+                      // Action: QR Scan Unlock
+                      (incoming().diff(existing()).affectedKeys().hasOnly(['qrUnlocked']))
+                    );
+
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+    }
+  }
+}
